@@ -43,63 +43,43 @@ client.on("connected", onConnectedHandler);
 // Connect to Twitch
 client.connect();
 
-// Map of winners for Rock Paper Scissors game
-const winners = {};
-winners["rock"] = ["paper"];
-winners["paper"] = ["scissors"];
-winners["scissors"] = ["rock"];
-const choices = Object.keys(winners);
-
 // Called every time a message comes in
 function onMessageHandler(target, context, msg, self) {
-  if (self) return; // Ignore messages from the bot
+  if (self) {
+    return; // Ignore messages from the bot
+  }
 
   // Splits message based on the first occurrence of a space
-  let commandRaw = msg.trim().toLowerCase().split(/ (.+)/);
-  if (typeof commandRaw == undefined) return;
+  let commandRegex = /(?<command_name>.+)\s*(?<command_input>.+)/;
+  let command = commandRegex.exec(msg.trim().toLowerCase());
+  if (typeof commandRaw == undefined) {
+    return;
+  }
 
-  let commandName = commandRaw[0];
-  let commandInput = commandRaw[1];
+  let commandName = command.groups.command_name;
+  let commandInput = command.groups.command_input || null;
 
   // Bot commands
   if (commandName[0] == "!") {
     // If the command is known -> execute it
-    if (commandName === "!coco") {
-      client.say(target, "snowxcCoco");
-      console.log(`* Executed ${commandName} command`);
-    } else if (commandName === "!subraid") {
-      client.say(
-        target,
-        "snowxcHype snowxcHype snowxcHype Snow is falling into chat #SnowxconesRaid snowxcBoop snowxcHype snowxcHype snowxcHype Snow is falling into chat #SnowxconesRaid snowxcBoop snowxcHype snowxcHype snowxcHypeSnow is falling into chat #SnowxconesRaid snowxcBoop"
-      );
-      console.log(`* Executed ${commandName} command`);
-    } else if (commandName === "!rps") {
-      let userChoice = commandInput;
-      client.say(target, rps(userChoice));
-      console.log(
-        `* Executed ${commandName} command with user choice ${userChoice}`
-      );
-    } else if (commandName === "!hug") {
-      let hugRecipient = commandInput;
-      let msg;
-      if (hugRecipient) {
-        msg = `${context.username} wraps ${hugRecipient} in a polar bear hug snowxcHug snowxcHug snowxcHug`;
-      } else {
-        msg = `${context.username} has no one to hug......`;
-      }
-
-      client.say(target, msg);
-      console.log(
-        `* Executed ${commandName} command with hug recipient ${hugRecipient}`
-      );
-    } else if (commandName === "!workingon") {
-      let msg = `${context.username}, thanks for asking! Snow is currently working on making a website 
-      using pure html/css, no javascript.`;
-      client.say(target, msg);
-    }
-    
-    else {
-      console.log(`* Unknown command ${commandName}`);
+    switch (commandName) {
+      case "!coco":
+        client.say(target, coco(commandName));
+        break;
+      case "!subraid":
+        client.say(target, subraid(commandName));
+        break;
+      case "!rps":
+        client.say(target, rps(commandName, commandInput));
+        break;
+      case "!hug":
+        client.say(target, hug(commandInput, context, commandName));
+        break;
+      case "!workingon":
+        client.say(target, workingon(context));
+        break;
+      default:
+        console.log(`* Unknown command ${commandName}`);
     }
   }
 
@@ -113,19 +93,75 @@ function onMessageHandler(target, context, msg, self) {
   // if not, timeout
 }
 
+function coco(commandName)
+{
+  console.log(`* Executed ${commandName} command`); 
+  return "snowxcCoco";
+}
+
+function subraid(commandRaid)
+{
+  console.log(`* Executed ${commandName} command`);
+  return "snowxcHype snowxcHype snowxcHype Snow is falling into chat #SnowxconesRaid snowxcBoop snowxcHype snowxcHype snowxcHype Snow is falling into chat #SnowxconesRaid snowxcBoop snowxcHype snowxcHype snowxcHypeSnow is falling into chat #SnowxconesRaid snowxcBoop";
+}
+
 // ChoosenEye's implementation of Rock Paper Scissors
-function rps(userChoice) {
-  if (!choices.includes(userChoice)) {
+function rps(commandName, userChoice)
+{
+  console.log(
+    `* Executed ${commandName} command with user choice ${userChoice}`
+  );
+  let winners = {};
+  winners["rock"] = ["paper"];
+  winners["paper"] = ["scissors"];
+  winners["scissors"] = ["rock"];
+  let choices = Object.keys(winners);
+  if (!rpsUserChoiceValid(choices, userChoice)) {
     return "Please type !rps followed by rock, paper, or scissors to play!";
   }
 
   let botChoice = choices[Math.floor(Math.random() * 3)]; // picks the 0th ("rock"), 1st ("paper"), or 2nd ("scissors") indexed item in the choices array
   let botChoiceStr = `I chose ${botChoice}. `;
-  if (userChoice == botChoice)
+  if (userChoice == botChoice) {
     return botChoiceStr + "A tie.. rematch? snowxcAngel";
-  if (winners[userChoice].includes(botChoice))
-    return botChoiceStr + "You lose, I win!! hehehehehe snowxcHype";
+  }
+  if (winners[userChoice].includes(botChoice)) {
+    return rpsUserWins(botChoiceStr); 
+  }
+  return rpsBotWins(botChoiceStr);
+}
+
+function rpsUserChoiceValid(choices, userChoice)
+{
+  return choices.includes(userChoice);
+}
+
+function rpsUserWins(botChoice)
+{
   return botChoiceStr + "You win, I lose!! snowxcFisticuffs";
+}
+
+function rpsBotWins(botChoice)
+{
+  return botChoiceStr + "You lose, I win!! hehehehehe snowxcHype";
+}
+
+function hug(hugRecipient, context, commandName)
+{
+  console.log(
+    `* Executed ${commandName} command with hug recipient ${hugRecipient}`
+  );
+  if (hugRecipient) {
+    return `${context.username} wraps ${hugRecipient} in a polar bear hug snowxcHug snowxcHug snowxcHug`;
+  } else {
+    return `${context.username} has no one to hug......`;
+  }
+}
+
+function workingon(context)
+{
+  return `${context.username}, thanks for asking! Snow is currently working on making a website 
+    using pure html/css, no javascript.`;
 }
 
 // Called every time the bot connects to Twitch chat
